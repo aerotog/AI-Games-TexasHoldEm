@@ -17,6 +17,9 @@ import poker.HandHoldem;
 import poker.PokerMove;
 
 import com.stevebrecher.HandEval;
+import static java.lang.Math.abs;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * This class is the brains of your bot. Make your calculations here and return the best move with GetMove
@@ -36,19 +39,118 @@ public class BotStarter implements Bot {
 		HandHoldem hand = state.getHand();
 		String handCategory = getHandCategory(hand, state.getTable()).toString();
 		System.err.printf("my hand is %s, opponent action is %s, pot: %d\n", handCategory, state.getOpponentAction(), state.getPot());
-		
+		int num_of_cards_on_table = state.getTable().length;
+                
 		// Get the ordinal values of the cards in your hand
 		int height1 = hand.getCard(0).getHeight().ordinal();
 		int height2 = hand.getCard(1).getHeight().ordinal();
-		
+                int suit1 = hand.getCard(0).getSuit().ordinal();
+		int suit2 = hand.getCard(1).getSuit().ordinal();
+                
+                List great_hand = Arrays.asList("FULL_HOUSE", "FOUR_OF_A_KIND",
+                        "STRAIGHT_FLUSH","STRAIGHT", "FLUSH");
+                
+                List good_hand = Arrays.asList("TWO_PAIR", "THREE_OF_A_KIND", "PAIR");
+                
+                //getHandCategory(HandHoldem hand, Card[] table);
+                PokerMove raise = new PokerMove(state.getMyName(), "raise", 2*state.getBigBlind());
+		PokerMove call = new PokerMove(state.getMyName(), "call", state.getAmountToCall());
+                PokerMove check = new PokerMove(state.getMyName(), "check", 0);
 		// Return the appropriate move according to our amazing strategy
-		if( height1 > 9 || height2 > 9 ) {
+                // Logic for pre-flop
+                if(num_of_cards_on_table == 0) {
+                    if (handCategory.equals("PAIR") ) {
+                        System.err.println("PAIR!!!");
+                        if (height1 > 9) {
+                            return raise;
+                        } else if (height1 > 4 ) {
+                            return call;
+                        } else {
+                            return check;
+                        }                        
+                    } else if ( suit1 == suit2 ) {
+                        System.err.println("Suits are " + suit1 + " annnnd " + suit2);
+                        System.err.println("POSSIBLE FLUSH!!");
+                        if (height1 > 9 || height2 > 9) {
+                            return raise;
+                        } else if (abs(height1 - height2) < 5) {
+                            return call;
+                        } else {
+                            return check;
+                        }
+                    } else if (abs(height1 - height2) < 5) {
+                        System.err.println("POSSIBLE STRAIT!");
+                        if (height1 > 9 && height2 > 9) {
+                            return raise;
+                        } else if (height1 > 6 && height2 > 6 ) {
+                            return call;
+                        } else {
+                            return check;
+                        }     
+                    } else if (height1 > 10 || height2 > 10) {
+                        return call;
+                    } else {
+                        System.err.println("Meh deal...");
+                        return check;
+                    }
+                    
+                } else if ( great_hand.contains(handCategory) ) {
+                    System.err.println("GREAT HAND!!!");
+                    return raise;
+                } else if ( good_hand.contains(handCategory) ) {
+                    System.err.println("GOOD HAND!!");
+                    return call;
+                } else {
+                    System.err.println("Meh hand...");
+                    return check;
+                }
+                        
+                        
+                
+                
+                
+                // SECOND TRY AT LOGIC
+                /*        
+                        && (height1 > 10 || height2 > 10)   ) {
+			return call_it;
+                } else if ( height1 > 9
+                            && num_of_cards_on_table == 0
+                            && handCategory.equals("PAIR") ) {
+			return raise_it;
+                } else if ( num_of_cards_on_table == 0
+                            && suit1 == suit2 ) {
+			return call_it;
+                } else if( good_hand.contains(handCategory) ) {
+			return raise_it;
+		} else if ( height1 > 8 && height2 > 8 ) {
+                        return call_it;
+                } else {
+			return check_it;        
+                }
+                */
+                // FIRST TRY AT LOGIC
+                /*
+                if( num_of_cards_on_table == 0
+                    && handCategory.equals("PAIR")
+                    && height1 > 9 && height2 > 9   ) {
 			return new PokerMove(state.getMyName(), "raise", 2*state.getBigBlind());
-		} else if( height1 > 5 && height2 > 5 ) {
+		} else if( num_of_cards_on_table == 0
+                           && abs( height1 - height2) < 5 
+                           && suit1 == suit2 )  {
+			return new PokerMove(state.getMyName(), "raise", 2*state.getBigBlind());
+		} else if( num_of_cards_on_table == 0
+                           && suit1 == suit2 
+                           && height1 > 5 && height2 > 5 && suit1 == suit2) {
+			return new PokerMove(state.getMyName(), "call", state.getAmountToCall());
+		} else if( good_hand.contains(handCategory) ) {
+			return new PokerMove(state.getMyName(), "raise", state.getAmountToCall());
+		} else if( handCategory.equals("PAIR") ) {
 			return new PokerMove(state.getMyName(), "call", state.getAmountToCall());
 		} else {
 			return new PokerMove(state.getMyName(), "check", 0);
 		}
+                */
+            //return new PokerMove(state.getMyName(), "raise", 2*state.getBigBlind());
 	}
 	
 	/**
@@ -79,6 +181,8 @@ public class BotStarter implements Bot {
 	
 	/**
 	 * small method to convert the int 'rank' to a readable enum called HandCategory
+         * @param rank
+         * @return 
 	 */
 	public HandEval.HandCategory rankToCategory(int rank) {
 		return HandEval.HandCategory.values()[rank >> HandEval.VALUE_SHIFT];
